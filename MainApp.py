@@ -1,6 +1,4 @@
 import argparse
-import re
-import csv
 import datetime
 import collections
 import shutil
@@ -11,7 +9,7 @@ from Valkyries import Alignment_Launcher
 import os
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.0.5'
+__version__ = '0.0.7'
 __package__ = 'NGS_Utility'
 
 
@@ -25,7 +23,6 @@ def main():
     parser.add_argument('--options_file', action='store', dest='options_file', required=True,
                         help='File containing program parameters.')
 
-    # options_parser = options_file(parser)
     args = Valkyries.InputFileParser.options_file(parser)
 
     dual_index_dict = Valkyries.InputFileParser.dual_indices(args.Master_Index_File)
@@ -43,9 +40,10 @@ def main():
     indexed_counter = 0
 
     file_end = False
-    not1_found = False
-    single_found = False
-    dual_found = False
+    target_sequence1_found = False
+    target_sequence2_found = False
+    target_sequence3_found = False
+    target_sequence4_found = False
 
     while not file_end:
         for r1_line, r2_line in zip(read1_blocks.seq_read(), read2_blocks.seq_read()):
@@ -53,7 +51,7 @@ def main():
                 file_end = True
                 break
 
-            data_dict, index_key = SequenceIndexMatching.index_matching(args, fastq1_name=r1_line.name, fastq2_name=None,
+            data_dict, index_key = SequenceIndexMatching.index_matching(args, read1=r1_line, read2=None,
                                                                         index_dict=dual_index_dict,
                                                                         read_count_dict=data_dict)
 
@@ -68,55 +66,57 @@ def main():
             if index_key != "unidentified":
                 indexed_counter += 1
 
-            if args.Target_Sequence in r1_line.seq:
-                # SNV Count
+            if args.Target_Sequence1 in r1_line.seq:
                 data_dict[index_key][1] += 1
-                single_found = True
+                target_sequence1_found = True
 
             if args.Target_Sequence2 in r1_line.seq:
-                # PAM Count
                 data_dict[index_key][2] += 1
-                if single_found:
-                    data_dict[index_key][5] += 1
-                    dual_found = True
-
-            if args.Target_Sequence4 in r1_line.seq:
-                # Not1 Count
-                data_dict[index_key][4] += 1
-                not1_found = True
-
-            read_counter += 1
+                target_sequence2_found = True
 
             if args.Target_Sequence3 in r1_line.seq:
                 data_dict[index_key][3] += 1
-                if dual_found:
-                    data_dict[index_key][6] += 1
+                target_sequence3_found = True
 
-            if not1_found and dual_found:
+            if args.Target_Sequence4 in r1_line.seq:
+                data_dict[index_key][4] += 1
+                target_sequence4_found = True
+
+            read_counter += 1
+
+            if target_sequence1_found and target_sequence2_found:
+                data_dict[index_key][5] += 1
+
+            if target_sequence1_found and target_sequence2_found and target_sequence3_found:
+                data_dict[index_key][6] += 1
+
+            if target_sequence1_found and target_sequence2_found and target_sequence4_found:
                 data_dict[index_key][7] += 1
 
-            if single_found and dual_found and not1_found:
+            if target_sequence1_found and target_sequence2_found and target_sequence3_found and target_sequence4_found:
                 data_dict[index_key][8] += 1
 
-            single_found = False
-            dual_found = False
-            not1_found = False
+            target_sequence1_found = False
+            target_sequence2_found = False
+            target_sequence3_found = False
+            target_sequence4_found = False
 
-        if read_counter >= 10000:
+        if read_counter >= int(args.Read_Limit):
             file_end = True
             print("Limiting Reads")
 
-        if read_counter % int(args.Read_Limit) == 0:
+        if read_counter % 1000000 == 0:
             print("Processed {} Reads".format(read_counter))
+
         if file_end:
             break
 
     outstring_header = \
         (("Package:\t{}\tVersion:\t{}\nAnalysis Run:\t{}\nTotal Read Count:\t{}\nReads With Proper Indices:\t{}\n"
-        "SNV Pattern:\tGAACATGTC\nPAM Pattern:\tTTGTGGTTAG\nMarker Pattern:\tTTTATCTAGGT\n"
-        "NotI Pattern:\tAGAATGCGGCCGCAATCT\n\n"
+        "SNV Pattern:\t{}\nPAM Pattern:\t{}\nMarker Pattern:\t{}\nNotI Pattern:\t{}\n\n"
         "Index\tRead Count\tSNV\tPAM\tMarker\tNotI\tSNV+PAM\tSNV+PAM+Marker\tSNV+PAM+NotI\tSNV+PAM+Marker+NotI\n")
-        .format(__package__, __version__, run_start, read_counter, indexed_counter))
+        .format(__package__, __version__, run_start, read_counter, indexed_counter, args.Target_Sequence1,
+                args.Target_Sequence2, args.Target_Sequence3, args.Target_Sequence4))
 
     outstring_data = ""
     for index_key in data_dict:
@@ -133,6 +133,7 @@ def main():
         outstring_data += ("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n"
                            .format(index_key, read_count, snv, pam, marker, not1, snv_pam, snv_pam_marker,
                                    snv_pam_not1, snv_pam_marker_not1))
+
     outfile = open("{}{}{}.csv".format(args.Working_Folder, os.sep, args.Job_Name), 'w')
     outfile.write(outstring_header+outstring_data)
     outfile.close()
@@ -144,7 +145,7 @@ def main():
         Valkyries.InputFileParser.compress_files("{}{}{}_R2.fq".format(fq_outfile_dir, os.sep, index[0]))
 
         outfile_list_dict[index[0]] = ["{}{}{}_R1.fq.gz".format(fq_outfile_dir, os.sep, index[0]),
-                                            "{}{}{}_R2.fq.gz".format(fq_outfile_dir, os.sep, index[0])]
+                                       "{}{}{}_R2.fq.gz".format(fq_outfile_dir, os.sep, index[0])]
 
     print("All FASTQ Files Compressed.\n")
 
@@ -154,40 +155,8 @@ def main():
        aligner = Alignment_Launcher.AlignmentLauncher(args, paired_end)
        aligner.run_aligner(outfile_list_dict)
 
-    print("All FASTQ Files Aligned.  Exiting Program.  Thank you for using NGS_Utility.  Goodbye.\n\n")
+    print("All Operations Complete.  Exiting Program.  Thank you for using NGS_Utility.  Goodbye.\n\n")
     exit(0)
-
-def ptions_file(options_parser):
-        """
-        This function parses the options file and adds the data to the argparse object.
-        :param: options_parser
-        :return:
-        """
-        count = 0
-        config_file = options_parser.parse_args().options_file
-
-        if not os.path.isfile(config_file):
-            print("\033[1;31mWARNING:\n\tOptions_File {} Not Found.  Check File Name and Path.".format(config_file))
-            raise SystemExit(1)
-
-        options = csv.reader(open(config_file), delimiter='\t')
-
-        for line in options:
-            count += 1
-            if len(line) < 2 or "#" in str(line[0]):  # Skip lines that are comments or blank.
-                continue
-
-            try:
-                value = re.sub(r"[\s]", "", line[1].split("#")[0])  # Strip out any end of line comments and whitespace.
-
-            except IndexError:
-                raise SystemExit("There is a syntax error in the options file on line " .format(count))
-
-            key = line[0].strip('--')
-            options_parser.add_argument(line[0], dest=key, default=value)
-
-        return options_parser
-
 
 if __name__ == "__main__":
     main()

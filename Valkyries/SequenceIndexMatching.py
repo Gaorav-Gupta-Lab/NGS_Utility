@@ -1,17 +1,15 @@
 
 from Valkyries import Sequence_Magic
 
-def index_matching(args, fastq1_name, fastq2_name=None, index_dict=None, read_count_dict=None):
+def index_matching(args, read1, read2=None, index_dict=None, read_count_dict=None):
     """
     This matches an index sequence with the index found in the sequence reads.
-    @param fastq1_read:
-    @param fastq2_read:
+    @param read1:
+    @param read2:
     @return:
     """
 
     match_found = False
-    left_seq = ""
-    right_seq = ""
     index_key = 'unidentified'
     left_match = 5
     right_match = 5
@@ -31,45 +29,42 @@ def index_matching(args, fastq1_name, fastq2_name=None, index_dict=None, read_co
 
         if args.Platform == "Illumina":
             # The indices are after the last ":" in the header.
-            right_match = Sequence_Magic.match_maker(right_index, fastq1_name.split(":")[-1].split("+")[1])
-            left_match = Sequence_Magic.match_maker(left_index, fastq1_name.split(":")[-1].split("+")[0])
+            right_match = Sequence_Magic.match_maker(right_index, read1.name.split(":")[-1].split("+")[1])
+            left_match = Sequence_Magic.match_maker(left_index, read1.name.split(":")[-1].split("+")[0])
 
         elif args.Platform == "TruSeq":
             # The indices are the first 6 and last 6 nucleotides of the consensus read.
-            left_match = Sequence_Magic.match_maker(right_index, fastq1_read.seq[:6])
-            right_match = Sequence_Magic.match_maker(left_index, fastq1_read.seq[-6:])
+            left_match = Sequence_Magic.match_maker(right_index, read1.seq[:6])
+            right_match = Sequence_Magic.match_maker(left_index, read1.seq[-6:])
 
         elif args.Platform == "Ramsden":
             if args.PEAR:
                 left_match = \
-                    Sequence_Magic.match_maker(left_index, fastq1_read.seq[-len(left_index):])
+                    Sequence_Magic.match_maker(left_index, read1.seq[-len(left_index):])
             else:
                 left_match = \
-                    Sequence_Magic.match_maker(Sequence_Magic.rcomp(left_index), fastq2_read.seq[:len(left_index)])
+                    Sequence_Magic.match_maker(Sequence_Magic.rcomp(left_index), read2.seq[:len(left_index)])
             right_match = \
-                Sequence_Magic.match_maker(right_index, fastq1_read.seq[:len(right_index)])
+                Sequence_Magic.match_maker(right_index, read1.seq[:len(right_index)])
 
         if index_key not in read_count_dict:
             read_count_dict[index_key] = [0]*9
-            #read_count_dict[index_key][0] = 0
 
         if left_match <= mismatch and right_match <= mismatch:
             read_count_dict[index_key][0] += 1
-            # left_seq = ""
-            # right_seq = fastq1_read.seq
 
             if args.Platform == "TruSeq":
                 pass
                 # right_seq = fastq1_read.seq[6:-6]
 
             match_found = True
-            if fastq2_name is None:
+            if read2 is None:
                 break
         '''
-        if match_found and fastq2_read:
+        if match_found and read2:
             # iSeq runs generally have low quality reads on the 3' ends.  This does a blanket trim to remove them.
-            left_seq = fastq2_read.seq[:-5]
-            right_seq = fastq1_read.seq[:-5]
+            left_seq = read2.seq[:-5]
+            right_seq = read1.seq[:-5]
             break
         '''
 
