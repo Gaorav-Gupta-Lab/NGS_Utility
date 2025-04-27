@@ -12,8 +12,6 @@ def delete(file_list):
         with suppress(FileNotFoundError):
             os.remove(file)
 
-def logtest(logger):
-    logger.info("Testing the logging system.")
 def debug_messenger(reason: str = None):
     """
     Simple call for debugging that will print the filename and line number to the screen.

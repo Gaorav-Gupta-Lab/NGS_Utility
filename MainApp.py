@@ -9,9 +9,8 @@ import Valkyries.InputFileParser
 from Valkyries import SequenceIndexMatching, BamTools, ToolBox
 from Valkyries import Alignment_Launcher
 
-
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.0.9'
+__version__ = '0.0.11'
 __package__ = 'NGS_Utility'
 
 
@@ -28,7 +27,7 @@ def main():
     args = Valkyries.InputFileParser.options_file(parser)
 
     # Create and configure logger
-    log_file = "{}{}Test.log".format(args.WorkingFolder, os.sep)
+    log_file = "{}{}{}.log".format(args.WorkingFolder, os.sep, __package__)
     logging.basicConfig(filename=log_file, format='%(asctime)s %(message)s', level=args.Verbose.upper(), filemode='w')
     logger = logging.getLogger()
     logger.info("Running:\t{} v{}\nRun Started: {}".format(__package__, __version__, run_start))
@@ -37,9 +36,9 @@ def main():
     sample_index = Valkyries.InputFileParser.sample_indices(args.SampleManifest)
     read1_blocks = Valkyries.FASTQ_Tools.FASTQ_Reader(args.FASTQ1)
     read2_blocks = Valkyries.FASTQ_Tools.FASTQ_Reader(args.FASTQ2)
+
     data_dict = collections.defaultdict(list)
     fastq_outfile_dict = collections.defaultdict(list)
-
     fq_outfile_dir = "{}{}fq_output_files".format(args.WorkingFolder, os.sep)
 
     if os.path.exists(fq_outfile_dir):
@@ -115,7 +114,7 @@ def main():
             file_end = True
             logger.debug("Limiting Reads")
 
-        if read_counter % 100000 == 0:
+        if read_counter % int(args.File_Write_Block_Size) == 0:
             for index_key in fastq_outfile_dict:
                 read1_string = "".join(fastq_outfile_dict[index_key][0])
                 read2_string = "".join(fastq_outfile_dict[index_key][1])
@@ -128,7 +127,6 @@ def main():
                 r2.close()
 
             fastq_outfile_dict.clear()
-            ToolBox.logtest(logger)
             logger.info("Processed {} Reads".format(read_counter))
 
         if file_end:
@@ -143,7 +141,7 @@ def main():
         outfile_list_dict[index[0]] = ["{}{}{}_R1.fq.gz".format(fq_outfile_dir, os.sep, index[0]),
                                        "{}{}{}_R2.fq.gz".format(fq_outfile_dir, os.sep, index[0])]
 
-    logger.info("All FASTQ Files Compressed.\n")
+    logger.info("--->All FASTQ Files Compressed.\n")
     aligned_read_label = ""
     aligned_read_count = ""
     if args.AlignDemultiplexedFASTQ == "True":

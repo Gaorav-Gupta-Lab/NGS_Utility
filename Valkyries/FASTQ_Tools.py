@@ -1,6 +1,5 @@
 import gzip
 import ntpath
-import pathlib
 import magic
 import collections
 

@@ -6,9 +6,6 @@
 """
 import os
 import subprocess
-from Valkyries import BamTools
-import pysam
-# from Valkyries import Tool_Box
 
 __author__ = 'Dennis A. Simpson'
 __version__ = "0.5.0"
@@ -30,13 +27,13 @@ class AlignmentLauncher:
         aligner_options = getattr(self.args, "Aligner_Options", "")
 
         if self.args.BWA_Method == "mem":
-            self.logger.info("Begin alignment of {0} and {1} with BWA mem.".format(fq1_name, fq2_name))
+            self.logger.info("\t-->Begin alignment of {0} and {1} with BWA mem.".format(fq1_name, fq2_name))
             cmd = "bwa mem -t {0} {1} {2} {3} {4} > {5}" \
                 .format(threads, aligner_options, self.args.Aligner_RefSeq, fq1_name, fq2_name, sam_file)
             self.logger.debug(cmd)
             subprocess.run([cmd], shell=True)
 
-            self.logger.info("Alignment complete, begin SAM to BAM conversion.")
+            self.logger.info("\t-->Alignment complete, begin SAM to BAM conversion.")
             cmd = "samtools view -bh {0} -o {1}".format(sam_file, bam_file)
             subprocess.run([cmd], shell=True)
             self.logger.debug(cmd)

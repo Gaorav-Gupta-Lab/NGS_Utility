@@ -7,7 +7,6 @@
 
 import csv
 from Levenshtein import distance
-# from Valkyries.Tool_Box import deprecated
 
 __author__ = 'Dennis A. Simpson'
 __version__ = '0.3.0'
