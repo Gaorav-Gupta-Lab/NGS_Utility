@@ -39,7 +39,7 @@ class AlignmentLauncher:
             self.logger.debug(cmd)
 
         elif self.args.BWA_Method == "aln":
-            print("Begin alignment of {0} and {1} with BWA aln.".format(fq1_name, fq2_name))
+            self.logger.info("Begin alignment of {0} and {1} with BWA aln.".format(fq1_name, fq2_name))
             sai_file1 = fq1_name.replace(".fastq", ".sai")
             sai_file2 = fq2_name.replace(".fastq", ".sai")
 
@@ -50,18 +50,18 @@ class AlignmentLauncher:
 
             subprocess.run([cmd1], shell=True)
             subprocess.run([cmd2], shell=True)
-            print("Alignment complete, begin SAI to SAM conversion.")
+            self.logger.info("Alignment complete, begin SAI to SAM conversion.")
 
             cmd3 = "bwa sampe {0} {1} {2} {3} {4} > {5}" \
                     .format(self.args.Aligner_RefSeq, sai_file1, sai_file2, fq1_name, fq2_name, sam_file)
 
             if not self.paired_end:
-                cmd3 = "bwa {0} samse {1} {2} > {3}".format(self.args.Aligner_RefSeq, sai_file1, fq1_name,
-                                                            sam_file)
+                cmd3 = ("bwa {0} samse {1} {2} > {3}"
+                        .format(self.args.Aligner_RefSeq, sai_file1, fq1_name, sam_file))
 
             subprocess.run([cmd3], shell=True)
 
-            print("SAI to SAM conversion complete. Begin SAM to BAM conversion.")
+            self.logger.info("SAI to SAM conversion complete. Begin SAM to BAM conversion.")
             cmd = "samtools view -bh {0} -o {1}".format(sam_file, bam_file)
             subprocess.run([cmd], shell=True)
 
