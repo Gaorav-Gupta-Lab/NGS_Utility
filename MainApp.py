@@ -9,7 +9,7 @@ from Valkyries import Alignment_Launcher
 import os
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.0.7'
+__version__ = '0.0.9'
 __package__ = 'NGS_Utility'
 
 
@@ -30,8 +30,10 @@ def main():
     read1_blocks = Valkyries.FASTQ_Tools.FASTQ_Reader(args.FASTQ1)
     read2_blocks = Valkyries.FASTQ_Tools.FASTQ_Reader(args.FASTQ2)
     data_dict = collections.defaultdict(list)
+    fastq_outfile_dict = collections.defaultdict(list)
 
     fq_outfile_dir = "{}{}fq_output_files".format(args.Working_Folder, os.sep)
+
     if os.path.exists(fq_outfile_dir):
         shutil.rmtree(fq_outfile_dir, ignore_errors=True)
     os.makedirs(fq_outfile_dir, exist_ok=True)
@@ -55,13 +57,9 @@ def main():
                                                                         index_dict=dual_index_dict,
                                                                         read_count_dict=data_dict)
 
-            r1 = open("{}{}{}_R1.fq".format(fq_outfile_dir, os.sep, index_key), "a")
-            r2 = open("{}{}{}_R2.fq".format(fq_outfile_dir, os.sep, index_key), "a")
-
-            r1.write("@{}\n{}\n+\n{}\n".format(r1_line.name, r1_line.seq, r1_line.qual))
-            r2.write("@{}\n{}\n+\n{}\n".format(r2_line.name, r2_line.seq, r2_line.qual))
-            r1.close()
-            r2.close()
+            read1 = "@{}\n{}\n+\n{}\n".format(r1_line.name, r1_line.seq, r1_line.qual)
+            read2 = "@{}\n{}\n+\n{}\n".format(r2_line.name, r2_line.seq, r2_line.qual)
+            fastq_outfile_dict[index_key].append([read1, read2])
 
             if index_key != "unidentified":
                 indexed_counter += 1
@@ -105,7 +103,16 @@ def main():
             file_end = True
             print("Limiting Reads")
 
-        if read_counter % 1000000 == 0:
+        if read_counter % 500000 == 0:
+            for index_key in fastq_outfile_dict:
+                r1 = open("{}{}{}_R1.fq".format(fq_outfile_dir, os.sep, index_key), "a")
+                r2 = open("{}{}{}_R2.fq".format(fq_outfile_dir, os.sep, index_key), "a")
+                r1.write(fastq_outfile_dict[index_key][0])
+                r2.write(fastq_outfile_dict[index_key][1])
+                r1.close()
+                r2.close()
+
+            fastq_outfile_dict.clear()
             print("Processed {} Reads".format(read_counter))
 
         if file_end:
