@@ -6,6 +6,8 @@
 """
 import os
 import subprocess
+from Valkyries import BamTools
+import pysam
 # from Valkyries import Tool_Box
 
 __author__ = 'Dennis A. Simpson'
@@ -17,9 +19,10 @@ class AlignmentLauncher:
     Builds the commands and launches the aligner.
     """
 
-    def __init__(self, args, paired_end):
+    def __init__(self, args, logger, paired_end):
 
         self.args = args
+        self.logger = logger
         self.paired_end = paired_end
 
     def run_bwa_aligner(self, fq1_name, fq2_name, sam_file, bam_file):
@@ -27,16 +30,16 @@ class AlignmentLauncher:
         aligner_options = getattr(self.args, "Aligner_Options", "")
 
         if self.args.BWA_Method == "mem":
-            print("Begin alignment of {0} and {1} with BWA mem.".format(fq1_name, fq2_name))
+            self.logger.info("Begin alignment of {0} and {1} with BWA mem.".format(fq1_name, fq2_name))
             cmd = "bwa mem -t {0} {1} {2} {3} {4} > {5}" \
                 .format(threads, aligner_options, self.args.Aligner_RefSeq, fq1_name, fq2_name, sam_file)
-            print(cmd)
+            self.logger.debug(cmd)
             subprocess.run([cmd], shell=True)
 
-            print("Alignment complete, begin SAM to BAM conversion.")
+            self.logger.info("Alignment complete, begin SAM to BAM conversion.")
             cmd = "samtools view -bh {0} -o {1}".format(sam_file, bam_file)
             subprocess.run([cmd], shell=True)
-            print(cmd)
+            self.logger.debug(cmd)
 
         elif self.args.BWA_Method == "aln":
             print("Begin alignment of {0} and {1} with BWA aln.".format(fq1_name, fq2_name))
@@ -66,7 +69,7 @@ class AlignmentLauncher:
             subprocess.run([cmd], shell=True)
 
         else:
-            print("No valid BWA alignment method provided")
+            self.logger.error("No valid BWA alignment method provided")
             raise SystemExit(1)
 
     def run_bowtie(self, fq1_name, fq2_name, sam_file, bam_file):
@@ -82,7 +85,7 @@ class AlignmentLauncher:
         else:
             bowtie2_local = ''
 
-            print("Begin alignment of {0} with Bowtie2".format(message))
+            self.logger.info("Begin alignment of {0} with Bowtie2".format(message))
 
         # Construct command for aligner and call subprocess to run.
         cmd = "bowtie2 {0} --trim5 {1} --trim3 {2} -x {3} {4} -S {5}" \
@@ -90,7 +93,7 @@ class AlignmentLauncher:
                     sam_file)
         subprocess.run([cmd], shell=True)
 
-        print("Alignment complete. Converting SAM format to BAM format")
+        self.logger.info("Alignment complete. Converting SAM format to BAM format")
 
         # Construct command for samtools and call subprocess to run.
         cmd = "samtools view -bh {0} -o {1}".format(sam_file, bam_file)
@@ -102,6 +105,8 @@ class AlignmentLauncher:
         :param outfile_list_dict:
         :return:
         """
+        bamfile_list = []
+        samfile_list = []
         for sample_index in outfile_list_dict:
             bam_file = "{}{}{}.bam".format(self.args.WorkingFolder, os.sep, sample_index)
             sam_file = "{}{}{}.sam".format(self.args.WorkingFolder, os.sep, sample_index)
@@ -117,15 +122,11 @@ class AlignmentLauncher:
                 self.run_bowtie(fq1_name, fq2_name, sam_file, bam_file)
 
             else:
-                print("\033[1;31m***Warning:\033[m {0} not allowed.  Currently only BWA or Bowtie2 supported."
+                self.logger.error("\033[1;31m***Warning:\033[m {0} not allowed.  Currently only BWA or Bowtie2 supported."
                                .format(self.args.Aligner))
                 raise SystemExit(1)
-            """
-            self.log.info("File conversion process complete.  Removing temporary files.")
-            if not self.args.Demultiplex:
-                Tool_Box.delete([fq1_name, fq2_name, sam_file, "{0}{1}_{2}.log"
-                                .format(self.args.WorkingFolder, self.args.JobName, fq1_name)])
-            else:
-                Tool_Box.delete([sam_file, "{0}{1}_{2}.log"
-                                .format(self.args.WorkingFolder, self.args.JobName, fq1_name)])
-            """
+
+            bamfile_list.append(bam_file)
+            samfile_list.append(sam_file)
+
+        return bamfile_list, samfile_list
