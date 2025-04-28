@@ -11,7 +11,9 @@ def bamfile_sort(args, unsorted_bamfile_list):
     """
     sorted_bamfile_dict = {}
     for unsorted_bamfile in unsorted_bamfile_list:
-        name, extension = os.path.splitext(unsorted_bamfile)
+        # BAM file names are path/index.BAM
+        file_name = os.path.basename(unsorted_bamfile)
+        name, extension = os.path.splitext(file_name)
         sorted_bamfile = unsorted_bamfile.replace(extension, "_sorted.bam")
         sorted_bamfile_dict[name] = sorted_bamfile
 

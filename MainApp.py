@@ -10,7 +10,7 @@ from Valkyries import SequenceIndexMatching, BamTools, ToolBox
 from Valkyries import Alignment_Launcher
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.0.11'
+__version__ = '0.0.12'
 __package__ = 'NGS_Utility'
 
 
@@ -53,16 +53,7 @@ def main():
     target_sequence2_found = False
     target_sequence3_found = False
     target_sequence4_found = False
-    test_list = ["{}{}D501+D701.bam".format(args.WorkingFolder, os.sep), "{}{}D502+D701.bam".format(args.WorkingFolder, os.sep)]
-    print(test_list)
-    for test_file in test_list:
-        print(test_file)
-        t = os.path.basename(test_file)
-        name, extension = os.path.splitext(t)
-        print("t ", t)
-        print(name, extension)
 
-    exit("Dragons")
     while not file_end:
         for r1_line, r2_line in zip(read1_blocks.seq_read(), read2_blocks.seq_read()):
             if r1_line.name == "EOF":
