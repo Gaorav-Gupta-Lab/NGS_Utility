@@ -10,7 +10,7 @@ from Valkyries import SequenceIndexMatching, BamTools, ToolBox
 from Valkyries import Alignment_Launcher
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.0.12'
+__version__ = '0.0.13'
 __package__ = 'NGS_Utility'
 
 
@@ -132,6 +132,18 @@ def main():
         if file_end:
             break
 
+    if len(fastq_outfile_dict) > 0:
+        for index_key in fastq_outfile_dict:
+            read1_string = "".join(fastq_outfile_dict[index_key][0])
+            read2_string = "".join(fastq_outfile_dict[index_key][1])
+
+            r1 = open("{}{}{}_R1.fq".format(fq_outfile_dir, os.sep, index_key), "a")
+            r2 = open("{}{}{}_R2.fq".format(fq_outfile_dir, os.sep, index_key), "a")
+            r1.write(read1_string)
+            r2.write(read2_string)
+            r1.close()
+            r2.close()
+
     logger.info("Begin Compressing FASTQ Files.")
     outfile_list_dict = collections.defaultdict(list)
     for index in sample_index:
@@ -167,21 +179,28 @@ def main():
     outstring_data = ""
 
     for index_key in data_dict:
-        if args.AlignDemultiplexedFASTQ == "True":
-            aligned_read_count += BamTools.total_align_count(sorted_bamfile_dict[index_key])
-        read_count = data_dict[index_key][0]
-        snv = data_dict[index_key][1]
-        pam = data_dict[index_key][2]
-        marker = data_dict[index_key][3]
-        not1 = data_dict[index_key][4]
-        snv_pam = data_dict[index_key][5]
-        snv_pam_marker = data_dict[index_key][6]
-        snv_pam_not1 = data_dict[index_key][7]
-        snv_pam_marker_not1 = data_dict[index_key][8]
+        try:
+            if args.AlignDemultiplexedFASTQ == "True":
+                aligned_read_count += BamTools.total_align_count(sorted_bamfile_dict[index_key])
+            read_count = data_dict[index_key][0]
+            snv = data_dict[index_key][1]
+            pam = data_dict[index_key][2]
+            marker = data_dict[index_key][3]
+            not1 = data_dict[index_key][4]
+            snv_pam = data_dict[index_key][5]
+            snv_pam_marker = data_dict[index_key][6]
+            snv_pam_not1 = data_dict[index_key][7]
+            snv_pam_marker_not1 = data_dict[index_key][8]
 
-        outstring_data += ("{}\t{}\t{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n"
-                           .format(index_key, read_count, aligned_read_count, snv, pam, marker, not1, snv_pam,
-                                   snv_pam_marker, snv_pam_not1, snv_pam_marker_not1))
+            outstring_data += ("{}\t{}\t{}{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n"
+                               .format(index_key, read_count, aligned_read_count, snv, pam, marker, not1, snv_pam,
+                                       snv_pam_marker, snv_pam_not1, snv_pam_marker_not1))
+        except KeyError:
+            logger.warning("Index {} not found in BAM file.  Skipping.".format(index_key))
+            continue
+        except IndexError:
+            logger.warning("Index {} not found in BAM file.  Skipping.".format(index_key))
+            continue
 
     outfile = open("{}{}{}.csv".format(args.WorkingFolder, os.sep, args.Job_Name), 'w')
     outfile.write(outstring_header+outstring_data)
