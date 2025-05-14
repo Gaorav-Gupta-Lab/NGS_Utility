@@ -10,7 +10,7 @@ from Valkyries import SequenceIndexMatching, BamTools, ToolBox
 from Valkyries import Alignment_Launcher
 
 __author__ = 'Dennis A. Simpson'
-__version__ = '0.0.13'
+__version__ = '0.1.0'
 __package__ = 'NGS_Utility'
 
 
@@ -53,19 +53,48 @@ def main():
     target_sequence2_found = False
     target_sequence3_found = False
     target_sequence4_found = False
+    read1_string = ""
+    read2_string = ""
+
+    """
+    while not file_end:
+        for r1_line, r2_line in zip(read1_blocks.seq_read(), read2_blocks.seq_read()):
+            if r1_line.name == "EOF":
+                file_end = True
+                break
+            if read_counter >= int(args.Read_Limit):
+                file_end = True
+                logger.debug("Limiting Reads")
+
+            read1_string += "@{}\n{}\n+\n{}\n".format(r1_line.name, r1_line.seq, r1_line.qual)
+            read2_string += "@{}\n{}\n+\n{}\n".format(r2_line.name, r2_line.seq, r2_line.qual)
+            read_counter += 1
+    r1 = open("{}{}Test_R1.fq".format(fq_outfile_dir, os.sep), "w")
+    r2 = open("{}{}Test_R2.fq".format(fq_outfile_dir, os.sep,), "w")
+    r1.write(read1_string)
+    r2.write(read2_string)
+    r1.close()
+    r2.close()
+    """
 
     while not file_end:
         for r1_line, r2_line in zip(read1_blocks.seq_read(), read2_blocks.seq_read()):
             if r1_line.name == "EOF":
                 file_end = True
                 break
+            if read_counter >= int(args.Read_Limit):
+                file_end = True
+                logger.debug("Limiting Reads")
 
-            data_dict, index_key = SequenceIndexMatching.index_matching(args, read1=r1_line, read2=None,
+            data_dict, index_key = SequenceIndexMatching.index_matching(args, read1=r1_line, read2=r2_line,
                                                                         index_dict=dual_index_dict,
                                                                         read_count_dict=data_dict)
 
+            # data_dict, index_key = SequenceIndexMatching.index_matching(args, read1=r1_line, read2=r2_line,index_dict=dual_index_dict,)
+
             read1 = "@{}\n{}\n+\n{}\n".format(r1_line.name, r1_line.seq, r1_line.qual)
             read2 = "@{}\n{}\n+\n{}\n".format(r2_line.name, r2_line.seq, r2_line.qual)
+
             if index_key not in fastq_outfile_dict:
                 fastq_outfile_dict[index_key] = [""] * 2
 

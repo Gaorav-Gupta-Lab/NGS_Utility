@@ -13,6 +13,17 @@ def index_matching(args, read1, read2=None, index_dict=None, read_count_dict=Non
     index_key = 'unidentified'
     left_match = 5
     right_match = 5
+    phase = ""
+    group = ""
+
+    if args.PhasedReads == "True":
+        phase = "{}".format(read2.seq[:4])
+        if phase == "CTAT" or phase == "ACTA":
+            group = "+G1"
+        elif phase == "GACT" or phase == "TGAC" or phase == "CTGA":
+            group = "+G2"
+        else:
+            group = "+{}".format(phase)
 
     # Set stringency of index match.
     if args.Platform == "Illumina":
@@ -47,6 +58,7 @@ def index_matching(args, read1, read2=None, index_dict=None, read_count_dict=Non
             right_match = \
                 Sequence_Magic.match_maker(right_index, read1.seq[:len(right_index)])
 
+        index_key = index_key + group
         if index_key not in read_count_dict:
             read_count_dict[index_key] = [0]*9
 
@@ -60,6 +72,7 @@ def index_matching(args, read1, read2=None, index_dict=None, read_count_dict=Non
             match_found = True
             if read2 is None:
                 break
+            return read_count_dict, index_key
         '''
         if match_found and read2:
             # iSeq runs generally have low quality reads on the 3' ends.  This does a blanket trim to remove them.
